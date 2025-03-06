@@ -4,7 +4,11 @@ import { atualizarTextoEditor } from "./documento.js";
 const socket = io();
 
 function selecionarDocumento(nome) {
-    socket.emit("selecionar_documento", nome);
+    socket.emit("selecionar_documento", nome, 
+        (texto) => {
+            atualizarTextoEditor(texto);
+        }   
+    );
   }
 
 function emitirTextoEditor(dados) {  
@@ -16,6 +20,11 @@ socket.on("texto-editor_clientes", (texto) => {
     console.log(texto);
     atualizarTextoEditor(texto);
 });  
+
+// socket.on("texto-documento", (texto) => {
+//     // console.log(texto);
+//     atualizarTextoEditor(texto);
+// });  
 
 socket.on("disconnect", (motivo) => {
     console.log(`Servidor desconectado!
