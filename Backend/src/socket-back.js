@@ -1,5 +1,11 @@
-import { documentosColecao } from "./dbConnect.js";
-import { atualizaDocumento, encontrarDocumento } from "./documentosDb.js";
+import {
+  adicionarDocumento,
+  atualizaDocumento,
+  encontrarDocumento,
+  excluirDocumento,
+  obterDocumentos,
+} from "./documentosDb.js";
+
 import io from "./servidor.js";
 
 const documentos = [
@@ -20,6 +26,26 @@ const documentos = [
 //connection
 io.on("connection", (socket) => {
   console.log("Um cliente se conectou!", socket.id);
+
+  socket.on("obter_documentos", async (devolverDocumentos) => {
+    const documentos = await obterDocumentos();
+
+    devolverDocumentos(documentos);
+  });
+
+  socket.on("adicionar_documento", async (nome) => {
+    const documentoExiste = (await encontrarDocumento(nome)) !== null;
+
+    if (documentoExiste) {
+      socket.emit("documento_existente", nome);
+    } else {
+      const resultado = await adicionarDocumento(nome);
+
+      if (resultado.acknowledged) {
+        io.emit("adicionar_documento_interface", nome);
+      }
+    }
+  });
 
   //selecionar_documento
   socket.on("selecionar_documento", async (nomeDocumento, callbackDevolverTexto) => {
@@ -56,6 +82,14 @@ io.on("connection", (socket) => {
     // io.emit("texto-editor_clientes", texto); //Enviando para todos os clientes
     // socket.broadcast.emit("texto-editor_clientes", texto); //Enviando para todos os clientes, menos para o que enviou
     socket.to(nomeDocumento).emit("texto-editor_clientes", texto); //Enviando para todos os clientes, menos para o que enviou
+  });
+
+  socket.on("excluir_documento", async (nome) => {
+    const resultado = await excluirDocumento(nome);
+
+    if (resultado.deletedCount) {
+      io.emit("excluir_documento_sucesso", nome);
+    }
   });
 
   //disconnect
